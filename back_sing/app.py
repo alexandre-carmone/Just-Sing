@@ -9,26 +9,6 @@ from transcription import Transcription
 dotenv.load_dotenv()
 
 
-class Models:
-    def __init__(self):
-        self.transcription_model = None
-        self.audio_processor = None
-        self.crepe_model = None
-
-    def load_models(self):
-        self.transcription_model = None
-        self.audio_processor = None
-        self.crepe_model = None
-
-    def get_pitch(self, audio):
-        # TODO pitch model function
-        pass
-
-    def get_transcription(self, audio):
-        # TODO get transcription
-        pass
-
-
 # Initialize FastAPI app
 app = FastAPI()
 
