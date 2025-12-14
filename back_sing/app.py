@@ -93,6 +93,8 @@ class WebSocketService:
                     # Obtenir les mots correspondants au timestamp actuel
                     matching_words = self.get_ground_truth_at_time(relative_time)
 
+
+
                     if matching_words:
                         for word_data in matching_words[:3]:  # Limite à 3 mots max
                             response = {
