@@ -1,4 +1,6 @@
 import asyncio
+import time
+
 import gradium
 import os
 import numpy as np
@@ -19,11 +21,13 @@ class Transcription:
         while True:
             try:
                 # Attendre un nouveau chunk audio avec un timeout
+                current = time.time()
                 audio_chunk = await asyncio.wait_for(self.audio_queue.get(), timeout=1.0)
                 print("send audio chuck to api")
                 if audio_chunk is None:  # Signal de fin
                     break
                 yield audio_chunk
+                print(f"audio chunk sent in {time.time() - current:.2f}s")
             except asyncio.TimeoutError:
                 # Continuer à attendre de nouveaux chunks
                 continue
