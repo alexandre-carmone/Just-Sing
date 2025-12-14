@@ -2,7 +2,7 @@ import bentoml
 import numpy as np
 from fastapi import FastAPI, WebSocket
 import dotenv
-
+import random
 dotenv.load_dotenv()
 
 
@@ -54,8 +54,8 @@ class WebSocketService:
                 data = np.frombuffer(data, dtype=np.float32)
                 print(f"Received: {data.shape}")
                 json = [
-                    {"word": "Hello", "pitch": 1},
-                    {"word": "World", "pitch": 2}
+                    {"word": "Hello", "pitch": random.randint(0, 1000)},
+                    {"word": "World", "pitch": random.randint(0, 1000)}
                 ]
                 await websocket.send_json(
                     json
