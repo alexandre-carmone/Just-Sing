@@ -1,16 +1,23 @@
+import asyncio
+import json
+import time
+
 import bentoml
+import dotenv
 import numpy as np
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-import dotenv
-import random
-import asyncio
-from transcription import Transcription
+
 from pitch_extractor import PitchExtractor
+from transcription import Transcription
 
 dotenv.load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI()
+
+
+# let sings,
+# connaissez-vous les paroles ?
 
 
 # Define BentoML Service and mount the app
@@ -25,6 +32,102 @@ class WebSocketService:
         # Initialiser l'extracteur de pitch
         self.pitch_extractor = PitchExtractor(sample_rate=24_000, chunck_size_ms=80)
         self.pitch_extractor(np.zeros(12_000))
+
+        # Charger les données de vérité terrain
+        self.ground_truth_data = self.load_ground_truth()
+
+    def load_ground_truth(self):
+        """Charge les données de vérité terrain depuis transcription.json"""
+        try:
+            with open('transcription.json', 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            print(f"✅ Données de vérité terrain chargées: {len(data)} entrées")
+            return data
+        except Exception as e:
+            print(f"❌ Erreur lors du chargement de transcription.json: {e}")
+            return []
+
+    def get_ground_truth_at_time(self, relative_time_s: float, tolerance: float = 0.5):
+        """Retourne les mots de vérité terrain correspondant au timestamp relatif"""
+        matching_words = []
+
+        for entry in self.ground_truth_data:
+            word_time = entry.get('start_s', 0)
+
+            # Vérifier si le mot correspond au timestamp avec tolérance
+            if abs(word_time - relative_time_s) <= tolerance:
+                matching_words.append({
+                    'text': entry.get('text', ''),
+                    'start_s': entry.get('start_s', 0),
+                    'stop_s': entry.get('stop_s', 0),
+                    'time_diff': abs(word_time - relative_time_s)
+                })
+
+        # Trier par proximité temporelle
+        matching_words.sort(key=lambda x: x['time_diff'])
+        return matching_words
+
+    @app.websocket("/ws/ground_truth")
+    async def ground_truth_endpoint(self, websocket: WebSocket):
+        """Endpoint qui retourne la vérité terrain basée sur le timestamp relatif"""
+        await websocket.accept()
+        print("WebSocket ground truth connection accepted")
+
+        # Enregistrer le temps de début de connexion
+        connection_start_time = time.time()
+        print(f"🕐 Début de connexion: {connection_start_time}")
+
+        try:
+            # Envoyer un message d'initialisation
+            init_response = {
+                "type": "connection_established",
+                "connection_time": connection_start_time,
+                "total_entries": len(self.ground_truth_data),
+                "timestamp": 0.0
+            }
+            await websocket.send_json(init_response)
+
+            # Boucle principale pour calculer le temps relatif et envoyer la vérité terrain
+            while True:
+                try:
+                    # Calculer le temps relatif depuis le début de la connexion
+                    current_time = time.time()
+                    relative_time = current_time - connection_start_time
+
+                    # Obtenir les mots correspondants au timestamp actuel
+                    matching_words = self.get_ground_truth_at_time(relative_time)
+
+
+
+                    if matching_words:
+                        for word_data in matching_words[:3]:  # Limite à 3 mots max
+                            response = {
+                                "type": "ground_truth",
+                                "text": word_data['text'],
+                                "expected_time_s": word_data['start_s'],
+                                "actual_relative_time_s": relative_time,
+                                "time_difference": word_data['time_diff'],
+                                "timestamp": current_time
+                            }
+
+                            await websocket.send_json(response)
+                            print(
+                                f"📤 Vérité terrain envoyée: '{word_data['text']}' à t={relative_time:.2f}s (attendu: {word_data['start_s']}s)")
+
+                    # Attendre 100ms avant la prochaine vérification
+                    await asyncio.sleep(0.1)
+
+                except WebSocketDisconnect:
+                    print("Ground truth client disconnected")
+                    break
+                except Exception as e:
+                    print(f"Error in ground truth processing: {e}")
+                    break
+
+        except Exception as e:
+            print(f"Ground truth connection error: {e}")
+        finally:
+            print("Ground truth connection closed")
 
     @app.websocket("/ws/transcription")
     async def transcription_endpoint(self, websocket: WebSocket):
