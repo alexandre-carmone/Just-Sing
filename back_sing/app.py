@@ -17,7 +17,7 @@ app = FastAPI()
 
 
 # let sings,
-# connaissez-vous les paroles ?
+# N'oubliez pas les paroles ?
 
 
 # Define BentoML Service and mount the app
