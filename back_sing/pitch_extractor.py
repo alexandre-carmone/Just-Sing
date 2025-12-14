@@ -6,7 +6,8 @@ class PitchExtractor:
     def __init__(self, sample_rate=16000, chunck_size_ms=80):
         self.sr = sample_rate
         self.chunck_size_ms = chunck_size_ms
-        self.last_valid_pitch = 120.0
+        self.last_valid_pitch = 120
+
 
     def __call__(self, chunk:np.array) -> float:
         current = time.time()
@@ -15,14 +16,14 @@ class PitchExtractor:
             self.sr,
             step_size=self.chunck_size_ms,
             viterbi=False,
-            model_capacity='tiny')
+            model_capacity='small')
 
-        if confidence_chunk[0] < 0.7:
-            return self.last_valid_pitch
 
-        print(f"Pitch extraction in {time.time() - current:.2f}s")
-        return float(frequency_chunk[0])
+        if confidence_chunk[0] > 0.2 and 100 < frequency_chunk[0] < 200:
+            self.last_valid_pitch = frequency_chunk[0]
 
+
+        return self.last_valid_pitch
 
 
 if __name__ == "__main__":
