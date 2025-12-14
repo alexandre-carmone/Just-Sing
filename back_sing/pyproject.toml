@@ -10,4 +10,6 @@ dependencies = [
     "gradium>=0.5.4",
     "librosa>=0.11.0",
     "websockets>=15.0.1",
+    "tensorflow==2.20.0",
+    "crepe==0.0.16",
 ]
