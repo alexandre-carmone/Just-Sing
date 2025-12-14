@@ -15,8 +15,10 @@ function App() {
   const [recognizedWords, setRecognizedWords] = useState([]);
   const [groundTruthWords, setGroundTruthWords] = useState([]);
   const [countdown, setCountdown] = useState(null);
+  const [isMockMode, setIsMockMode] = useState(false);
   const startTimeRef = useRef(null);
   const groundTruthContainerRef = useRef(null);
+  const mockIntervalRef = useRef(null);
   
 const handlePitchReceived = (pitch) => {
     console.log('🎵 Received - Pitch:', pitch, 'Type:', typeof pitch);
@@ -126,6 +128,22 @@ const handlePitchReceived = (pitch) => {
       const elapsed = (Date.now() - startTimeRef.current) / 1000;
       setCurrentTime(elapsed);
       
+      // Generate mock pitch data if in mock mode
+      if (isMockMode) {
+        const targetPitch = SAMPLE_SONG_PITCHES.find(
+          sp => Math.abs(sp.time - elapsed) < 0.1
+        );
+        
+        if (targetPitch) {
+          // Add minimal randomization to simulate natural singing variation
+          // Random offset: -2 to +2 Hz (extremely close to target)
+          const randomOffset = (Math.random() - 0.5) * 4;
+          const mockPitch = targetPitch.pitch + randomOffset;
+          
+          handlePitchReceived(mockPitch);
+        }
+      }
+      
       // Stop when song ends
       if (elapsed < SONG_DURATION) {
         requestAnimationFrame(animationFrame);
@@ -178,6 +196,14 @@ const handlePitchReceived = (pitch) => {
     setScore(0);
     setCurrentTime(0);
     startTimeRef.current = null; // Reset the start time ref
+  };
+  
+  const toggleMockMode = () => {
+    setIsMockMode(prev => !prev);
+    // Reset if currently recording
+    if (isRecording) {
+      resetGame();
+    }
   };
   
   // Debug function to test lyrics display
@@ -314,7 +340,13 @@ const handlePitchReceived = (pitch) => {
         </div>
       )}
       
-      {isRecording && (!isPitchConnected || !isTranscriptionConnected || !isGroundTruthConnected) && (
+      {isMockMode && (
+        <div className="mb-4 bg-purple-500/20 border border-purple-500 rounded-lg px-6 py-3 backdrop-blur-sm">
+          <p className="text-purple-200">🎭 Mock Mode Active - Simulated singing for demo</p>
+        </div>
+      )}
+      
+      {!isMockMode && isRecording && (!isPitchConnected || !isTranscriptionConnected || !isGroundTruthConnected) && (
         <div className="mb-4 bg-yellow-500/20 border border-yellow-500 rounded-lg px-6 py-3 backdrop-blur-sm">
           <p className="text-yellow-200">
             🔄 Connecting... 
@@ -325,7 +357,7 @@ const handlePitchReceived = (pitch) => {
         </div>
       )}
       
-      {isRecording && isPitchConnected && isTranscriptionConnected && isGroundTruthConnected && (
+      {!isMockMode && isRecording && isPitchConnected && isTranscriptionConnected && isGroundTruthConnected && (
         <div className="mb-4 bg-green-500/20 border border-green-500 rounded-lg px-6 py-3 backdrop-blur-sm">
           <p className="text-green-200">✓ All Connected - Ready to sing!</p>
         </div>
@@ -349,6 +381,17 @@ const handlePitchReceived = (pitch) => {
           className="px-8 py-4 rounded-xl font-bold text-lg bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm border border-white/20 transition-all duration-300 transform hover:scale-105 shadow-2xl"
         >
           🔄 Reset
+        </button>
+        
+        <button
+          onClick={toggleMockMode}
+          className={`px-8 py-4 rounded-xl font-bold text-lg backdrop-blur-sm border transition-all duration-300 transform hover:scale-105 shadow-2xl ${
+            isMockMode 
+              ? 'bg-purple-500/80 hover:bg-purple-600 text-white border-purple-400/50'
+              : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+          }`}
+        >
+          {isMockMode ? '🎭 Mock: ON' : '🎤 Mock: OFF'}
         </button>
         
         {/* <button
