@@ -24,6 +24,7 @@ class WebSocketService:
         self.active_transcriptions = {}
         # Initialiser l'extracteur de pitch
         self.pitch_extractor = PitchExtractor(sample_rate=24_000, chunck_size_ms=80)
+        self.pitch_extractor(np.zeros(12_000))
 
     @app.websocket("/ws/transcription")
     async def transcription_endpoint(self, websocket: WebSocket):
