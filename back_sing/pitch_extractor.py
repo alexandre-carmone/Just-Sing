@@ -7,11 +7,12 @@ class PitchExtractor:
         self.chunck_size_ms = chunck_size_ms
 
     def __call__(self, chunk:np.array) -> float:
-        time_chunk, frequency_chunk, confidence_chunk, activation_chunk = crepe.predict(chunk,
-                                                                                        self.sr,
-                                                                                        step_size=self.chunck_size_ms,
-                                                                                        viterbi=False,
-                                                                                        model_capacity='tiny')
+        time_chunk, frequency_chunk, confidence_chunk, activation_chunk = crepe.predict(
+            chunk,
+            self.sr,
+            step_size=self.chunck_size_ms,
+            viterbi=False,
+            model_capacity='tiny')
 
         return float(frequency_chunk[0])
 
